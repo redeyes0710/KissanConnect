@@ -1,40 +1,61 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KISAN Connect (Problem Statement ID: 26033)
+**Direct Farmer-to-Buyer Digital Marketplace with AI Demand Forecasting & Logistics**
+
+Theme: Agriculture, FoodTech & Rural Development  
+Department: Department of Consumer Affairs (DoCA) / Ministry of Consumer Affairs, Food & Public Distribution
+
+---
+
+## Overview
+
+KISAN Connect bridges the gap between agricultural producers (farmers and FPOs) and institutional/bulk buyers. By eliminating unnecessary intermediate layers, farmers earn fairer realizations while consumers and bulk buyers receive fresher produce at reduced costs.
+
+### Key Capabilities in this Prototype:
+- **Direct Produce Marketplace**: Farmers list crops with real-time field attributes and benchmarked prices (`/api/products`).
+- **AI Demand Forecasting Engine**: Deterministic, explainable demand forecasts powered by historical order volume momentum and trend velocity (`/api/forecast`).
+- **Resilient Seed Fallback**: Seeded agricultural order datasets for offline judging reliability, clearly labeled as prototype demo data.
+
+---
+
+## AI Demand Forecast Architecture
+
+- **Engine (`lib/forecast.ts`)**: Pure TypeScript mathematical model computing dampened linear trend velocity and Weighted Moving Average (WMA). 100% deterministic and unit-testable without database dependency.
+- **Seed Datasets (`lib/seedData.ts`)**: Historical weekly order volumes for Tomato, Sharbati Wheat, Red Onion, Potato, and Mustard Seed with explicit `"Prototype estimate • Demo data"` labeling.
+- **API Endpoint (`app/api/forecast/route.ts`)**: `GET /api/forecast?product=<CropName>`. Queries Supabase orders first, falls back gracefully to seed data when the database is empty or offline, and provides full error handling (400, 404, 500).
+- **UI Component (`components/ForecastPanel.tsx`)**: Reactive dashboard panel with loading, error, empty, and success states, trend indicator pill, historical progression cards, and actionable agricultural recommendations.
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### 1. Prerequisites
+- Node.js LTS (v20+ or v24+)
+- npm
 
+### 2. Setup Environment Variables
+Copy `.env.example` to `.env.local`:
 ```bash
+cp .env.example .env.local
+```
+Add your Supabase project URL and anon/publishable key if available. If unconfigured, the prototype automatically runs on verified local demo seed data.
+
+### 3. Install & Run
+```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Testing the Demand Forecast
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# KisanConnect
->>>>>>> c97d76415efc87257dec88f3d2fea745796461af
+1. **Tomato (Increasing trend)**: [http://localhost:3000/api/forecast?product=Tomato](http://localhost:3000/api/forecast?product=Tomato)
+2. **Sharbati Wheat (Wholesale demand)**: [http://localhost:3000/api/forecast?product=Wheat](http://localhost:3000/api/forecast?product=Wheat)
+3. **Red Onion (Volume surge)**: [http://localhost:3000/api/forecast?product=Onion](http://localhost:3000/api/forecast?product=Onion)
+4. **Unknown Crop (Handled 404)**: [http://localhost:3000/api/forecast?product=DragonFruit](http://localhost:3000/api/forecast?product=DragonFruit)
+5. **Missing Parameter (Handled 400)**: [http://localhost:3000/api/forecast](http://localhost:3000/api/forecast)
