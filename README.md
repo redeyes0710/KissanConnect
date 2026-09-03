@@ -1,40 +1,64 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KISSAN Connect
 
-## Getting Started
+Student hackathon prototype for SIH Problem Statement 26033: **Multiple intermediaries reduce farmers earnings and increase consumer prices.**
 
-First, run the development server:
+## What we are building
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+KISSAN Connect demonstrates one connected flow:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Farmer/FPO → Produce Listing → Marketplace → Buyer → Order → Demand Insight → Logistics Route**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The prototype focuses on three pillars:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Direct marketplace connection between farmers/FPOs and buyers/consumers.
+2. Demand forecasting / recommendations.
+3. Logistics and route optimization.
 
-## Learn More
+## Prototype scope
 
-To learn more about Next.js, take a look at the following resources:
+This is a **local hackathon prototype**, not a production platform.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Prefer simple, free/student-accessible, reliable technology. Avoid unnecessary infrastructure, microservices, complex payments, real-time GPS, blockchain, and production-scale ML.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Team ownership
 
-## Deploy on Vercel
+- **Member 1:** Farmer frontend
+- **Member 2:** Buyer + marketplace frontend
+- **Member 3:** UX
+- **Member 4:** UI/design
+- **Member 5:** Backend + APIs
+- **Member 6:** Database + AI + logistics + integration
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Working rules
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# KisanConnect
->>>>>>> c97d76415efc87257dec88f3d2fea745796461af
+- GitHub is the source of truth for code.
+- `main` is kept stable.
+- `develop` is the shared integration branch.
+- Feature branches are used for individual tasks.
+- One logical task per branch/PR.
+- AI must inspect the existing code before changing it.
+- Test locally before claiming a task is complete.
+- Do not let multiple AI tools rewrite the same feature at the same time.
+- Synthetic/demo data must be clearly labelled.
+
+## Local development
+
+The exact technology stack is documented in `docs/ARCHITECTURE.md` and should only be changed after the team agrees.
+
+Before coding, each team member must be able to clone the repository, install its dependencies, and run the current project locally.
+
+## Project documentation
+
+- `docs/PROJECT_SPEC.md` — what the prototype must demonstrate
+- `docs/ARCHITECTURE.md` — current technical structure and decisions
+- `docs/CHAT_PROMPTS.md` — copy-paste prompts for the team’s ChatGPT Project chats
+- `docs/API_SPEC.md` — agreed API contracts
+- `docs/DATABASE.md` — data model
+- `docs/AI_SPEC.md` — demand and logistics logic
+- `docs/TASKS.md` — current task assignments
+- `docs/HANDOVER.md` — short current-state handoff
+- `docs/CONSTRAINTS.md` — project guardrails
+
+## Important
+
+The existing repository is a starter project with some Supabase/product API work already present. **Do not delete or rewrite it blindly.** First inspect the current implementation, verify what works, and then continue incrementally.
