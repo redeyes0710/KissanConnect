@@ -33,8 +33,19 @@ export async function createProduct(product: {
   return response.json();
 }
 
-export async function getOrders() {
-  const response = await fetch(`${API_BASE}/api/orders`);
+export async function getOrders(
+  userId?: string,
+  role?: "farmer" | "buyer"
+) {
+  let url = `${API_BASE}/api/orders`;
+
+  if (userId && role) {
+    url += `?${
+      role === "farmer" ? "farmer_id" : "buyer_id"
+    }=${userId}`;
+  }
+
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error("Failed to fetch orders");

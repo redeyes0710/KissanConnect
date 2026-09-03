@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createOrder, getProducts } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
 
@@ -9,24 +10,62 @@ export default function BuyerPage() {
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    async function loadProducts() {
-      try {
-        const result = await getProducts();
-        setProducts(result.products || []);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     loadProducts();
   }, []);
 
+  async function loadProducts() {
+    try {
+      setLoading(true);
+
+      const result = await getProducts();
+      const productList = result.products || [];
+
+      setProducts(productList);
+
+      const initialQuantities: Record<string, number> = {};
+
+      productList.forEach((product: any) => {
+        initialQuantities[product.id] = 1;
+      });
+
+      setQuantities(initialQuantities);
+    } catch (error) {
+      console.error("Failed to load products:", error);
+      setMessage("Failed to load products.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function changeQuantity(
+    productId: string,
+    amount: number,
+    maxQuantity: number
+  ) {
+    setQuantities((current) => {
+      const currentQuantity = current[productId] || 1;
+
+      const newQuantity = Math.max(
+        1,
+        Math.min(
+          currentQuantity + amount,
+          Number(maxQuantity)
+        )
+      );
+
+      return {
+        ...current,
+        [productId]: newQuantity,
+      };
+    });
+  }
+
   async function handleBuy(product: any) {
-    const { data, error: userError } = await supabase.auth.getUser();
+    const { data, error: userError } =
+      await supabase.auth.getUser();
 
     if (userError || !data.user) {
       setMessage("Please login before placing an order.");
@@ -34,8 +73,7 @@ export default function BuyerPage() {
     }
 
     const buyerId = data.user.id;
-
-    const quantity = 1;
+    const quantity = quantities[product.id] || 1;
     const totalPrice = Number(product.price) * quantity;
 
     setBuying(product.id);
@@ -50,62 +88,803 @@ export default function BuyerPage() {
       });
 
       if (result.success) {
-        setMessage(`Order placed for ${product.name}! ✅`);
+        setMessage(
+          `Order placed for ${product.name}! Total: ₹${totalPrice} ✅`
+        );
       } else {
-        setMessage(result.error || "Failed to place order.");
+        setMessage(
+          result.error || "Failed to place order."
+        );
       }
     } catch (error) {
       console.error(error);
-      setMessage("Something went wrong while placing the order.");
+
+      setMessage(
+        "Something went wrong while placing the order."
+      );
     } finally {
       setBuying(null);
     }
   }
 
   if (loading) {
-    return <main>Loading products...</main>;
+    return (
+      <main className="buyer-page">
+        <div className="container">
+          <Link href="/" className="back-button">
+            ← Back
+          </Link>
+
+          <div className="loading-card">
+            <div className="loading-icon">⏳</div>
+            <h2>Loading marketplace...</h2>
+            <p>Finding fresh products from farmers.</p>
+          </div>
+        </div>
+
+        <style jsx>{`
+          .buyer-page {
+            min-height: 100vh;
+            padding: 25px 16px 60px;
+            background: #f6f8f5;
+          }
+
+          .container {
+            width: min(1100px, 100%);
+            margin: 0 auto;
+          }
+
+          .back-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            margin-bottom: 25px;
+            border: 1px solid #e1e6df;
+            border-radius: 9px;
+            background: white;
+            color: #2e7d32;
+            font-weight: 600;
+            text-decoration: none;
+          }
+
+          .back-button:hover {
+            background: #edf7ed;
+            color: #1b5e20;
+          }
+
+          .loading-card {
+            padding: 55px 20px;
+            background: white;
+            border: 1px solid #e1e6df;
+            border-radius: 16px;
+            text-align: center;
+          }
+
+          .loading-icon {
+            font-size: 40px;
+          }
+
+          .loading-card h2 {
+            margin: 12px 0 5px;
+            color: #172019;
+          }
+
+          .loading-card p {
+            margin: 0;
+            color: #68736b;
+          }
+
+          @media (max-width: 650px) {
+            .buyer-page {
+              padding: 18px 12px 40px;
+            }
+
+            .back-button {
+              width: 100%;
+              margin-bottom: 20px;
+            }
+          }
+        `}</style>
+      </main>
+    );
   }
 
   return (
-    <main>
-      <h1>Buyer Marketplace</h1>
+    <main className="buyer-page">
+      <div className="container">
+        {/* BACK BUTTON */}
+        <Link href="/" className="back-button">
+          ← Back
+        </Link>
 
-      <p>Buy fresh products directly from farmers.</p>
+        {/* HEADER */}
+        <header className="page-header">
+          <div>
+            <p className="eyebrow">BUYER PORTAL</p>
 
-      {message && <p>{message}</p>}
+            <h1>Marketplace</h1>
 
-      {products.length === 0 ? (
-        <p>No products available.</p>
-      ) : (
-        products.map((product) => (
-          <div key={product.id}>
-            <h2>{product.name}</h2>
-
-            <p>{product.description}</p>
-
-            <p>
-              Price: ₹{product.price} / {product.unit}
+            <p className="subtitle">
+              Buy fresh products directly from farmers.
             </p>
+          </div>
+
+          <Link
+            href="/buyer/orders"
+            className="orders-button"
+          >
+            📦 My Orders
+          </Link>
+        </header>
+
+        {/* MESSAGE */}
+        {message && (
+          <div className="message">
+            {message}
+          </div>
+        )}
+
+        {/* PRODUCTS */}
+        {products.length === 0 ? (
+          <div className="empty-card">
+            <div className="empty-icon">🌾</div>
+
+            <h2>No products available</h2>
 
             <p>
-              Available: {product.quantity} {product.unit}
+              Farmers haven't listed any products yet.
+              Please check again later.
             </p>
 
             <button
-              onClick={() => handleBuy(product)}
-              disabled={buying === product.id}
+              type="button"
+              onClick={loadProducts}
+              className="refresh-button"
             >
-              {buying === product.id ? "Placing Order..." : "Buy Now"}
+              ↻ Refresh
             </button>
-
-            <hr />
           </div>
-        ))
-      )}
+        ) : (
+          <>
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">FRESH PRODUCE</p>
+                <h2>Available Products</h2>
+              </div>
 
-      <a href="/buyer/orders">
-        <button>My Orders</button>
-      </a>
+              <span className="product-count">
+                {products.length} product
+                {products.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+
+            <div className="product-grid">
+              {products.map((product) => {
+                const quantity =
+                  quantities[product.id] || 1;
+
+                const totalPrice =
+                  Number(product.price) * quantity;
+
+                const maxQuantity =
+                  Number(product.quantity);
+
+                return (
+                  <div
+                    className="product-card"
+                    key={product.id}
+                  >
+                    {/* PRODUCT TOP */}
+                    <div className="product-top">
+                      <div className="product-icon">
+                        🥕
+                      </div>
+
+                      <span className="available-badge">
+                        Available
+                      </span>
+                    </div>
+
+                    {/* PRODUCT NAME */}
+                    <h3>{product.name}</h3>
+
+                    {/* DESCRIPTION */}
+                    {product.description && (
+                      <p className="description">
+                        {product.description}
+                      </p>
+                    )}
+
+                    {/* PRICE */}
+                    <div className="price">
+                      ₹{product.price}
+                      <span>
+                        {" "}
+                        / {product.unit}
+                      </span>
+                    </div>
+
+                    {/* AVAILABLE */}
+                    <div className="available-box">
+                      <span>Available quantity</span>
+
+                      <strong>
+                        {product.quantity}{" "}
+                        {product.unit}
+                      </strong>
+                    </div>
+
+                    {/* QUANTITY */}
+                    <div className="quantity-section">
+                      <span className="quantity-label">
+                        Quantity
+                      </span>
+
+                      <div className="quantity-control">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            changeQuantity(
+                              product.id,
+                              -1,
+                              maxQuantity
+                            )
+                          }
+                          disabled={quantity <= 1}
+                        >
+                          −
+                        </button>
+
+                        <span className="quantity-value">
+                          {quantity}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            changeQuantity(
+                              product.id,
+                              1,
+                              maxQuantity
+                            )
+                          }
+                          disabled={
+                            quantity >= maxQuantity
+                          }
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* TOTAL */}
+                    <div className="total-row">
+                      <span>Total</span>
+
+                      <strong>
+                        ₹{totalPrice}
+                      </strong>
+                    </div>
+
+                    {/* BUY */}
+                    <button
+                      type="button"
+                      className="buy-button"
+                      onClick={() =>
+                        handleBuy(product)
+                      }
+                      disabled={
+                        buying === product.id ||
+                        maxQuantity <= 0
+                      }
+                    >
+                      {buying === product.id
+                        ? "Placing Order..."
+                        : maxQuantity <= 0
+                        ? "Out of Stock"
+                        : "Buy Now"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* ORDERS CTA */}
+        <section className="orders-card">
+          <div>
+            <p className="eyebrow orders-eyebrow">
+              YOUR ORDERS
+            </p>
+
+            <h2>Track Your Orders</h2>
+
+            <p>
+              View your previous orders and check whether
+              farmers have accepted or rejected them.
+            </p>
+          </div>
+
+          <Link
+            href="/buyer/orders"
+            className="orders-card-button"
+          >
+            View My Orders →
+          </Link>
+        </section>
+      </div>
+
+      <style jsx>{`
+        .buyer-page {
+          min-height: 100vh;
+          padding: 25px 16px 60px;
+          background: #f6f8f5;
+        }
+
+        .container {
+          width: min(1100px, 100%);
+          margin: 0 auto;
+        }
+
+        /* BACK */
+
+        .back-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 16px;
+          margin-bottom: 25px;
+          border: 1px solid #e1e6df;
+          border-radius: 9px;
+          background: white;
+          color: #2e7d32;
+          font-weight: 600;
+          text-decoration: none;
+          transition: 0.2s ease;
+        }
+
+        .back-button:hover {
+          background: #edf7ed;
+          color: #1b5e20;
+        }
+
+        /* HEADER */
+
+        .page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 28px;
+        }
+
+        .eyebrow {
+          margin: 0 0 5px;
+          color: #2e7d32;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 1px;
+        }
+
+        .page-header h1 {
+          margin: 0;
+          color: #172019;
+          font-size: 36px;
+          line-height: 1.2;
+        }
+
+        .subtitle {
+          margin: 8px 0 0;
+          color: #68736b;
+          font-size: 15px;
+        }
+
+        .orders-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 18px;
+          border-radius: 9px;
+          background: #2e7d32;
+          color: white;
+          font-weight: 600;
+          text-decoration: none;
+          white-space: nowrap;
+          transition: 0.2s ease;
+        }
+
+        .orders-button:hover {
+          background: #1b5e20;
+          color: white;
+        }
+
+        /* MESSAGE */
+
+        .message {
+          margin-bottom: 25px;
+          padding: 14px 16px;
+          border: 1px solid #cce8cf;
+          border-radius: 10px;
+          background: #edf7ed;
+          color: #1b5e20;
+          font-weight: 600;
+        }
+
+        /* SECTION */
+
+        .section-heading {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 15px;
+          margin-bottom: 18px;
+        }
+
+        .section-heading h2 {
+          margin: 0;
+          color: #172019;
+          font-size: 24px;
+        }
+
+        .product-count {
+          color: #68736b;
+          font-size: 14px;
+        }
+
+        /* PRODUCTS */
+
+        .product-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 18px;
+        }
+
+        .product-card {
+          padding: 20px;
+          background: white;
+          border: 1px solid #e1e6df;
+          border-radius: 15px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          transition: 0.2s ease;
+        }
+
+        .product-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 7px 20px rgba(0, 0, 0, 0.07);
+        }
+
+        .product-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 15px;
+        }
+
+        .product-icon {
+          width: 48px;
+          height: 48px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          background: #f0f7ed;
+          font-size: 24px;
+        }
+
+        .available-badge {
+          padding: 5px 10px;
+          border-radius: 20px;
+          background: #dcfce7;
+          color: #166534;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .product-card h3 {
+          margin: 0 0 7px;
+          color: #172019;
+          font-size: 20px;
+        }
+
+        .description {
+          min-height: 42px;
+          margin: 0 0 15px;
+          color: #68736b;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+
+        .price {
+          color: #2e7d32;
+          font-size: 23px;
+          font-weight: 700;
+        }
+
+        .price span {
+          color: #68736b;
+          font-size: 13px;
+          font-weight: 400;
+        }
+
+        .available-box {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          margin-top: 15px;
+          padding: 11px 12px;
+          border-radius: 9px;
+          background: #f6f8f5;
+        }
+
+        .available-box span {
+          color: #68736b;
+          font-size: 12px;
+        }
+
+        .available-box strong {
+          color: #263128;
+          font-size: 13px;
+        }
+
+        /* QUANTITY */
+
+        .quantity-section {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          margin-top: 17px;
+        }
+
+        .quantity-label {
+          color: #263128;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .quantity-control {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .quantity-control button {
+          width: 36px;
+          height: 36px;
+          min-width: 36px;
+          padding: 0;
+          border: 1px solid #d9e0d8;
+          border-radius: 8px;
+          background: white;
+          color: #2e7d32;
+          font-size: 20px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .quantity-control button:hover:not(:disabled) {
+          background: #edf7ed;
+        }
+
+        .quantity-control button:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .quantity-value {
+          min-width: 25px;
+          text-align: center;
+          color: #172019;
+          font-weight: 700;
+        }
+
+        /* TOTAL */
+
+        .total-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 18px;
+          padding-top: 16px;
+          border-top: 1px solid #edf0ec;
+        }
+
+        .total-row span {
+          color: #68736b;
+          font-size: 14px;
+        }
+
+        .total-row strong {
+          color: #2e7d32;
+          font-size: 20px;
+        }
+
+        /* BUY */
+
+        .buy-button {
+          width: 100%;
+          margin-top: 17px;
+          padding: 12px 18px;
+          border: none;
+          border-radius: 9px;
+          background: #2e7d32;
+          color: white;
+          font-family: inherit;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: 0.2s ease;
+        }
+
+        .buy-button:hover:not(:disabled) {
+          background: #1b5e20;
+        }
+
+        .buy-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* EMPTY */
+
+        .empty-card {
+          padding: 55px 20px;
+          background: white;
+          border: 1px solid #e1e6df;
+          border-radius: 15px;
+          text-align: center;
+        }
+
+        .empty-icon {
+          font-size: 42px;
+        }
+
+        .empty-card h2 {
+          margin: 12px 0 5px;
+          color: #172019;
+        }
+
+        .empty-card p {
+          margin: 0 auto 20px;
+          max-width: 500px;
+          color: #68736b;
+        }
+
+        .refresh-button {
+          padding: 11px 18px;
+          border: none;
+          border-radius: 9px;
+          background: #2e7d32;
+          color: white;
+          font-family: inherit;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .refresh-button:hover {
+          background: #1b5e20;
+        }
+
+        /* ORDERS CTA */
+
+        .orders-card {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 25px;
+          margin-top: 38px;
+          padding: 25px;
+          border-radius: 16px;
+          background: #1b5e20;
+        }
+
+        .orders-eyebrow {
+          color: #b7e0ba;
+        }
+
+        .orders-card h2 {
+          margin: 0;
+          color: white;
+          font-size: 22px;
+        }
+
+        .orders-card p:not(.eyebrow) {
+          margin: 6px 0 0;
+          color: #d9eadb;
+        }
+
+        .orders-card-button {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 18px;
+          border-radius: 9px;
+          background: white;
+          color: #1b5e20;
+          font-weight: 700;
+          text-decoration: none;
+          transition: 0.2s ease;
+        }
+
+        .orders-card-button:hover {
+          background: #f1f8f2;
+          color: #1b5e20;
+        }
+
+        /* TABLET */
+
+        @media (max-width: 900px) {
+          .product-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        /* MOBILE */
+
+        @media (max-width: 650px) {
+          .buyer-page {
+            padding: 18px 12px 40px;
+          }
+
+          .back-button {
+            width: 100%;
+            margin-bottom: 20px;
+          }
+
+          .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 15px;
+            margin-bottom: 22px;
+          }
+
+          .page-header h1 {
+            font-size: 29px;
+          }
+
+          .orders-button {
+            width: 100%;
+          }
+
+          .section-heading {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .section-heading h2 {
+            font-size: 22px;
+          }
+
+          .product-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .product-card {
+            padding: 18px;
+          }
+
+          .orders-card {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 20px;
+          }
+
+          .orders-card-button {
+            width: 100%;
+          }
+
+          .available-box {
+            flex-wrap: wrap;
+          }
+
+          .quantity-section {
+            margin-top: 15px;
+          }
+        }
+      `}</style>
     </main>
   );
 }
