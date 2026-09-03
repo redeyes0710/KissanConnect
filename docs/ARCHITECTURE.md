@@ -78,40 +78,49 @@ Ops/Judge dashboard summarizes impact and flow
 
 ## Seven project chats
 
-- **00 — Team Lead / Architect:** decides priorities, dependencies, and integration order.
+- **00 — Team Lead / Architect:** priorities, dependencies, architecture, and integration decisions.
 - **01 — Frontend:** farmer and buyer/marketplace screens; consumes agreed contracts.
-- **02 — UX/UI:** maintains the shared visual system and developer handoff from the Stitch package.
-- **03 — Database + Core API:** owns schema, Supabase data access, products, orders, and core contracts.
-- **04 — Authentication + Login + Dashboard API:** owns prototype login/session/role access and dashboard summary endpoints.
-- **05 — AI + Logistics:** owns demand forecast, farmer recommendation, route optimization, and their API integration.
-- **06 — GitHub + QA + Integration:** owns branch/PR discipline, review, regression checks, and end-to-end demo readiness.
+- **02 — UX/UI:** shared visual system and developer handoff from the Stitch package.
+- **03 — Database + Core API:** schema, Supabase data access, products, orders, and core API contracts.
+- **04 — Authentication + Login + Dashboard API:** prototype login/session/role access and dashboard summary endpoints.
+- **05 — AI + Logistics:** demand forecast, farmer recommendation, route optimization, and related integration.
+- **06 — GitHub + QA + Integration:** branch/PR discipline, review, regression checks, and end-to-end demo readiness.
 
-## Team ownership
+## Workstream model
 
-- Member 1 — Farmer frontend
-- Member 2 — Buyer + marketplace frontend
-- Member 3 — Database + core API
-- Member 4 — Authentication + login + dashboard API
-- Member 5 — AI demand forecast + logistics
-- Member 6 — GitHub + QA + integration
-- UX/UI — shared design responsibility across the team; visual source of truth is the supplied Stitch/design package
+The project is organized by **workstreams, not permanent person-to-feature assignments**. Team members may collaborate across workstreams. The branch name describes the work, not the person performing it.
 
 ## Integration rules
 
 1. `main` is stable and demo-ready.
 2. `develop` is the shared integration branch.
-3. Feature branches must be based on current `develop`.
+3. Feature branches must be based on current `develop` whenever practical.
 4. PRs target `develop`; `main` receives reviewed, demo-ready integration changes.
 5. One logical feature per PR.
 6. API and database contracts must be agreed before frontend integration.
-7. AI agents inspect current code first and modify only the necessary files.
+7. AI coding agents inspect current code first and modify only necessary files.
 8. Never commit secrets or `.env` files.
 9. Synthetic/demo data must be explicitly labelled.
 10. Numerical AI results must remain deterministic and testable locally.
 
-## Important branch note
+## Current branch hygiene
 
-The current `feature/demand-forecast` branch contains the demand forecast implementation, but it currently has no common ancestor with `main`. Do **not** force-merge or rebuild `main` around that branch. The demand code should be reviewed, then selectively ported onto a fresh feature branch created from current `develop`/`main` so repository history stays clean.
+Use task-based branch names such as:
+
+- `feature/core-api`
+- `feature/farmer-frontend`
+- `feature/marketplace`
+- `feature/ux-ui`
+- `feature/auth-dashboard`
+- `feature/demand-forecast`
+- `feature/ai-logistics`
+- `feature/integration-qa`
+
+Avoid personal names in branch names.
+
+## Demand forecast branch note
+
+The existing `feature/demand-forecast` branch contains useful demand implementation, but it has no common ancestor with the current `main`. Do **not** force-merge it. Review the implementation and selectively port the required files onto a fresh branch based on current `develop`.
 
 ## Prototype non-goals
 
