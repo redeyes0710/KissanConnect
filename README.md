@@ -24,26 +24,28 @@ Prefer simple, free/student-accessible, reliable technology. Avoid unnecessary i
 
 - **Member 1:** Farmer frontend
 - **Member 2:** Buyer + marketplace frontend
-- **Member 3:** UX
-- **Member 4:** UI/design
-- **Member 5:** Backend + APIs
-- **Member 6:** Database + AI + logistics + integration
+- **Member 3:** Database + core API
+- **Member 4:** Authentication + login + dashboard API
+- **Member 5:** AI demand forecast + logistics
+- **Member 6:** GitHub + QA + integration
+- **UX/UI:** shared design responsibility; the uploaded Stitch/design package is the visual source of truth
 
 ## Working rules
 
 - GitHub is the source of truth for code.
-- `main` is kept stable.
+- `main` is stable/demo-ready.
 - `develop` is the shared integration branch.
 - Feature branches are used for individual tasks.
 - One logical task per branch/PR.
-- AI must inspect the existing code before changing it.
+- AI coding agents must inspect existing code before changing it.
 - Test locally before claiming a task is complete.
 - Do not let multiple AI tools rewrite the same feature at the same time.
 - Synthetic/demo data must be clearly labelled.
+- Never commit secrets, `.env` files, API keys, or service-role credentials.
 
 ## Local development
 
-The exact technology stack is documented in `docs/ARCHITECTURE.md` and should only be changed after the team agrees.
+The current technical baseline is documented in `docs/ARCHITECTURE.md`.
 
 Before coding, each team member must be able to clone the repository, install its dependencies, and run the current project locally.
 
@@ -51,14 +53,22 @@ Before coding, each team member must be able to clone the repository, install it
 
 - `docs/PROJECT_SPEC.md` — what the prototype must demonstrate
 - `docs/ARCHITECTURE.md` — current technical structure and decisions
-- `docs/CHAT_PROMPTS.md` — copy-paste prompts for the team’s ChatGPT Project chats
+- `docs/CHAT_PROMPTS.md` — copy-paste prompts for the seven specialized ChatGPT Project chats
+- `docs/TASKS.md` — current task assignments and integration milestones
 - `docs/API_SPEC.md` — agreed API contracts
-- `docs/DATABASE.md` — data model
-- `docs/AI_SPEC.md` — demand and logistics logic
-- `docs/TASKS.md` — current task assignments
+- `docs/DATABASE.md` — minimum data model and schema notes
+- `docs/AI_SPEC.md` — demand forecast and logistics rules
+- `docs/UX_UI_INTEGRATION.md` — how to integrate the Stitch/design package without replacing the working app blindly
 - `docs/HANDOVER.md` — short current-state handoff
 - `docs/CONSTRAINTS.md` — project guardrails
 
+## Current integration status
+
+- Foundation documentation is on `main`.
+- Product/order work exists in feature branches and must be reviewed before integration.
+- AI demand forecast currently exists on `feature/demand-forecast` and must be reviewed and ported/integrated onto a branch based on `main` before merging.
+- The UI/UX ZIP is a design source and should be integrated selectively into the Next.js app rather than copied over wholesale.
+
 ## Important
 
-The existing repository is a starter project with some Supabase/product API work already present. **Do not delete or rewrite it blindly.** First inspect the current implementation, verify what works, and then continue incrementally.
+The repository contains starter implementation work. **Do not delete or rewrite it blindly.** First inspect the current implementation, verify what works, and then continue incrementally.
