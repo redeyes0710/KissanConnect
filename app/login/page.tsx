@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role");
 
@@ -44,9 +44,10 @@ export default function LoginPage() {
 
       <form onSubmit={handleLogin}>
         <div>
-          <label>Email</label>
+          <label htmlFor="email">Email</label>
           <br />
           <input
+            id="email"
             type="email"
             placeholder="Enter your email"
             value={email}
@@ -58,9 +59,10 @@ export default function LoginPage() {
         <br />
 
         <div>
-          <label>Password</label>
+          <label htmlFor="password">Password</label>
           <br />
           <input
+            id="password"
             type="password"
             placeholder="Enter your password"
             value={password}
@@ -83,5 +85,13 @@ export default function LoginPage() {
         </a>
       </p>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main>Loading...</main>}>
+      <LoginContent />
+    </Suspense>
   );
 }
