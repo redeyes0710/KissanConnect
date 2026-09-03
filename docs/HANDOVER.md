@@ -1,35 +1,34 @@
-# KISSAN Connect — Handover
+# KISSAN Connect — Current Handover
 
-## Current status
+## Stable baseline
 
-Project is in **foundation / audit** stage.
+`main` contains the project foundation, current team workflow, task board, API contracts, database notes, AI/logistics specification, and UX/UI integration guidance.
 
-The repository already contains a Next.js/React starter application, a Supabase helper, and an existing products API route. The homepage is still starter content. Do not throw away the existing code until it has been inspected and tested.
+## Branches
 
-## Current team ownership
+- `main` — stable/demo baseline
+- `develop` — shared integration; keep synchronized with approved `main` baseline
+- `feature/*` — individual tasks
+- `feature/demand-forecast` — demand implementation exists here but has unrelated Git history; do not force-merge it
 
-- Member 1 — Farmer frontend
-- Member 2 — Buyer + marketplace frontend
-- Member 3 — UX
-- Member 4 — UI/design
-- Member 5 — Backend + APIs
-- Member 6 — Database + AI + logistics + integration
+## Current feature state
 
-## Immediate next task
+### Existing / in progress
+- Product API work exists in feature branches.
+- Order API work exists in feature branches.
+- Demand forecast implementation exists on `feature/demand-forecast`.
+- Supplied Stitch ZIP contains the intended UI/UX source material.
 
-Run the existing project locally and perform a short codebase audit:
+### Still required
+1. Synchronize `develop` with the latest stable `main` baseline.
+2. Review and port demand forecast onto a branch based on current `develop`.
+3. Audit database schema and align products/orders/forecast inputs.
+4. Complete prototype authentication and role access.
+5. Integrate farmer and buyer screens with the supplied design.
+6. Implement logistics route optimization and map presentation.
+7. Build/finish ops/judge summary and impact evidence.
+8. Run end-to-end regression and demo rehearsal.
 
-1. Install dependencies.
-2. Start the local development server.
-3. Confirm the current homepage loads.
-4. Inspect the current product API and Supabase helper.
-5. Record what works, what fails, and what should be kept.
-6. Update architecture/API/database notes before feature work.
+## Merge rule
 
-## First product milestone
-
-**Farmer adds produce → product is stored → product appears in marketplace.**
-
-## Important
-
-No major feature should be implemented until the team has agreed on the minimum architecture and the first task assignments.
+Feature work goes to `develop` through a reviewed PR. `main` is updated only with approved integration-ready changes.
