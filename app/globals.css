@@ -35,15 +35,11 @@ body {
   overflow-x: hidden;
 }
 
-/* Page container */
-
 main {
   width: min(1100px, calc(100% - 32px));
   margin: 0 auto;
   padding: 40px 0;
 }
-
-/* Headings */
 
 h1 {
   font-size: 32px;
@@ -69,8 +65,6 @@ p {
   color: var(--text-secondary);
 }
 
-/* Links */
-
 a {
   color: var(--green);
   text-decoration: none;
@@ -79,8 +73,6 @@ a {
 a:hover {
   color: var(--green-dark);
 }
-
-/* Buttons */
 
 button {
   border: none;
@@ -104,8 +96,6 @@ button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-
-/* Inputs */
 
 input,
 textarea,
@@ -135,8 +125,6 @@ textarea {
   min-height: 100px;
 }
 
-/* Cards */
-
 .card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -144,8 +132,6 @@ textarea {
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
-
-/* Marketplace grid */
 
 .product-grid {
   display: grid;
@@ -177,8 +163,6 @@ textarea {
   font-size: 14px;
 }
 
-/* Forms */
-
 .form {
   width: 100%;
   max-width: 600px;
@@ -194,8 +178,6 @@ textarea {
   font-weight: 600;
 }
 
-/* Status */
-
 .success {
   color: var(--green);
 }
@@ -207,8 +189,6 @@ textarea {
 .error {
   color: var(--error);
 }
-
-/* Tablet */
 
 @media (max-width: 800px) {
   main {
@@ -235,8 +215,6 @@ textarea {
     padding: 16px;
   }
 }
-
-/* Mobile */
 
 @media (max-width: 600px) {
   body {
@@ -282,14 +260,11 @@ textarea {
     min-height: 44px;
   }
 
-  /* Allow groups of buttons to stack */
   button + button {
     margin-left: 0 !important;
     margin-top: 10px;
   }
 }
-
-/* Very small phones */
 
 @media (max-width: 400px) {
   main {
