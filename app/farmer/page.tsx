@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createProduct } from "@/lib/api-client";
+import { supabase } from "@/lib/supabase";
 
 export default function FarmerPage() {
   const [name, setName] = useState("");
@@ -10,22 +11,41 @@ export default function FarmerPage() {
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("kg");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
+    setLoading(true);
+    setMessage("");
+
     try {
+      // Get the currently logged-in user
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        setMessage("You must be logged in to create a listing.");
+        setLoading(false);
+        return;
+      }
+
+      // Create product with the logged-in farmer's ID
       const result = await createProduct({
         name,
         description,
         price: Number(price),
         quantity: Number(quantity),
         unit,
+        farmer_id: user.id,
       });
 
       if (result.success) {
         setMessage("Product listed successfully! ✅");
 
+        // Clear form
         setName("");
         setDescription("");
         setPrice("");
@@ -37,6 +57,8 @@ export default function FarmerPage() {
     } catch (error) {
       console.error(error);
       setMessage("Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -50,6 +72,7 @@ export default function FarmerPage() {
         <div>
           <label>Product Name</label>
           <br />
+
           <input
             type="text"
             value={name}
@@ -64,6 +87,7 @@ export default function FarmerPage() {
         <div>
           <label>Description</label>
           <br />
+
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -76,11 +100,13 @@ export default function FarmerPage() {
         <div>
           <label>Price (₹)</label>
           <br />
+
           <input
             type="number"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             placeholder="40"
+            min="0"
             required
           />
         </div>
@@ -90,11 +116,13 @@ export default function FarmerPage() {
         <div>
           <label>Quantity</label>
           <br />
+
           <input
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="100"
+            min="1"
             required
           />
         </div>
@@ -104,6 +132,7 @@ export default function FarmerPage() {
         <div>
           <label>Unit</label>
           <br />
+
           <select
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
@@ -117,13 +146,18 @@ export default function FarmerPage() {
 
         <br />
 
-        <button type="submit">Create Listing</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "Creating..." : "Create Listing"}
+        </button>
       </form>
-      <a href="/farmer/orders">
-  <button>View Orders</button>
-</a>
 
       {message && <p>{message}</p>}
+
+      <br />
+
+      <a href="/farmer/orders">
+        <button type="button">View Orders</button>
+      </a>
     </main>
   );
 }

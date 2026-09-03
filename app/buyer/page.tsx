@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createOrder, getProducts } from "@/lib/api-client";
+import { supabase } from "@/lib/supabase";
 
 export default function BuyerPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -25,6 +26,15 @@ export default function BuyerPage() {
   }, []);
 
   async function handleBuy(product: any) {
+    const { data, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !data.user) {
+      setMessage("Please login before placing an order.");
+      return;
+    }
+
+    const buyerId = data.user.id;
+
     const quantity = 1;
     const totalPrice = Number(product.price) * quantity;
 
@@ -34,6 +44,7 @@ export default function BuyerPage() {
     try {
       const result = await createOrder({
         product_id: product.id,
+        buyer_id: buyerId,
         quantity,
         total_price: totalPrice,
       });
@@ -91,9 +102,10 @@ export default function BuyerPage() {
           </div>
         ))
       )}
+
       <a href="/buyer/orders">
-  <button>My Orders</button>
-</a>
+        <button>My Orders</button>
+      </a>
     </main>
   );
 }
