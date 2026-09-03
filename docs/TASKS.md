@@ -43,25 +43,27 @@ The task board is organized by **workstream and deliverable**, not by permanent 
 
 ## 2 — Database + Core API
 
-- [ ] Audit current Supabase setup/schema
-- [ ] Finalize minimum users/profiles, products, orders, and delivery data needed by the demo
-- [ ] Product create/read/update flow
-- [ ] Order create/read/update flow
-- [ ] Basic delivery/status contract
-- [ ] Seed/demo dataset for predictable local testing
-- [ ] Document schema and API assumptions
-- [ ] Verify ownership fields are compatible with authentication
+- [done] Audit current Supabase setup/schema (backend-completion-audit.md)
+- [done] Finalize minimum users/profiles, products, orders, and delivery data needed by the demo
+- [done] `db/migrations/001_create_tables.sql` — schema for products, orders, farmers, buyers, locations
+- [done] Products API (`app/api/products/route.ts`) — GET with fallback+filter, POST with full validation
+- [done] Orders API (`app/api/orders/route.ts`) — GET with filters, POST with server-side total + stock check
+- [done] Demo fallback data (`lib/demoData.ts`) — labelled synthetic data for all major endpoints
+- [done] Document schema and API assumptions (`docs/ARCHITECTURE.md`, `backend-completion.md`)
+- [done] Verify ownership fields are compatible with authentication (`farmer_id` / `buyer_id` on orders and products)
+
 
 ## 3 — Authentication + Login + Dashboard API
 
-- [ ] Choose the simplest prototype-safe auth/session approach compatible with the current repo
-- [ ] Login/access screen
-- [ ] Demo roles: Farmer / Buyer / Admin-Ops
+- [done] Prototype auth login endpoint (`app/api/auth/login/route.ts`) — Supabase email/password
+- [done] Prototype session endpoint (`app/api/auth/me/route.ts`) — Bearer token validation
+- [done] Dashboard summary API (`app/api/admin/summary/route.ts`) — live + demo fallback metrics
+- [ ] Login/access screen (frontend)
+- [ ] Demo roles: Farmer / Buyer / Admin-Ops (frontend)
 - [ ] Protect role-specific routes/API operations where needed
-- [ ] Connect product/order ownership to the signed-in demo user where practical
-- [ ] Dashboard summary API
-- [ ] Logout/session reset
-- [ ] Unauthorized/error states
+- [ ] Logout/session reset (frontend)
+- [ ] Unauthorized/error states (frontend)
+
 
 ## 4 — AI Demand Forecast
 
