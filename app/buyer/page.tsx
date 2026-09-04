@@ -1,16 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createOrder, getProducts } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
 
+type Product = {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  quantity: number;
+  unit: string;
+  farmer_id?: string | null;
+  category?: string | null;
+  variety?: string | null;
+  created_at?: string;
+};
+
 export default function BuyerPage() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
+
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [variety, setVariety] = useState("");
+
+  const [quantities, setQuantities] = useState<
+    Record<string, number>
+  >({});
 
   useEffect(() => {
     loadProducts();
@@ -19,15 +39,17 @@ export default function BuyerPage() {
   async function loadProducts() {
     try {
       setLoading(true);
+      setMessage("");
 
       const result = await getProducts();
-      const productList = result.products || [];
+
+      const productList = (result.products || []) as Product[];
 
       setProducts(productList);
 
       const initialQuantities: Record<string, number> = {};
 
-      productList.forEach((product: any) => {
+      productList.forEach((product) => {
         initialQuantities[product.id] = 1;
       });
 
@@ -63,7 +85,7 @@ export default function BuyerPage() {
     });
   }
 
-  async function handleBuy(product: any) {
+  async function handleBuy(product: Product) {
     const { data, error: userError } =
       await supabase.auth.getUser();
 
@@ -107,6 +129,58 @@ export default function BuyerPage() {
     }
   }
 
+  // Get unique categories from available products
+  const categories = useMemo(() => {
+    return Array.from(
+      new Set(
+        products
+          .map((product) => product.category)
+          .filter(Boolean)
+      )
+    ).sort();
+  }, [products]);
+
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    const searchText = search.trim().toLowerCase();
+    const varietyText = variety.trim().toLowerCase();
+
+    return products.filter((product) => {
+      const matchesSearch =
+        !searchText ||
+        product.name.toLowerCase().includes(searchText) ||
+        (product.description || "")
+          .toLowerCase()
+          .includes(searchText) ||
+        (product.variety || "")
+          .toLowerCase()
+          .includes(searchText);
+
+      const matchesCategory =
+        !category ||
+        product.category?.toLowerCase() ===
+          category.toLowerCase();
+
+      const matchesVariety =
+        !varietyText ||
+        (product.variety || "")
+          .toLowerCase()
+          .includes(varietyText);
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesVariety
+      );
+    });
+  }, [products, search, category, variety]);
+
+  function clearFilters() {
+    setSearch("");
+    setCategory("");
+    setVariety("");
+  }
+
   if (loading) {
     return (
       <main className="buyer-page">
@@ -116,9 +190,11 @@ export default function BuyerPage() {
           </Link>
 
           <div className="loading-card">
-            <div className="loading-icon">⏳</div>
+            <div className="loading-icon">🌾</div>
             <h2>Loading marketplace...</h2>
-            <p>Finding fresh products from farmers.</p>
+            <p>
+              Finding fresh products from farmers.
+            </p>
           </div>
         </div>
 
@@ -174,17 +250,6 @@ export default function BuyerPage() {
             margin: 0;
             color: #68736b;
           }
-
-          @media (max-width: 650px) {
-            .buyer-page {
-              padding: 18px 12px 40px;
-            }
-
-            .back-button {
-              width: 100%;
-              margin-bottom: 20px;
-            }
-          }
         `}</style>
       </main>
     );
@@ -193,133 +258,209 @@ export default function BuyerPage() {
   return (
     <main className="buyer-page">
       <div className="container">
-        {/* BACK BUTTON */}
+
+        {/* HEADER */}
+
         <Link href="/" className="back-button">
           ← Back
         </Link>
 
-        {/* HEADER */}
         <header className="page-header">
-          <div>
-            <p className="eyebrow">BUYER PORTAL</p>
-
-            <h1>Marketplace</h1>
-
-            <p className="subtitle">
-              Buy fresh products directly from farmers.
-            </p>
-          </div>
-
-          <Link
-            href="/buyer/orders"
-            className="orders-button"
-          >
-            📦 My Orders
-          </Link>
+          <h1>KisanConnect Marketplace</h1>
+          <p>
+            Find fresh products directly from farmers.
+          </p>
         </header>
 
+        {/* SEARCH / FILTER SECTION */}
+
+        <section className="search-card">
+          <h2>Find Products</h2>
+
+          <div className="field">
+            <label htmlFor="search">
+              Search product
+            </label>
+
+            <input
+              id="search"
+              type="text"
+              placeholder="e.g. Mango, Apple, Tomato..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="category">
+              Category
+            </label>
+
+            <select
+              id="category"
+              value={category}
+              onChange={(e) =>
+                setCategory(e.target.value)
+              }
+            >
+              <option value="">
+                All categories
+              </option>
+
+              {categories.map((item) => (
+                <option key={item} value={item || ""}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="variety">
+              Variety
+            </label>
+
+            <input
+              id="variety"
+              type="text"
+              placeholder="e.g. Hapus, Langda, Kashmiri Apple..."
+              value={variety}
+              onChange={(e) =>
+                setVariety(e.target.value)
+              }
+            />
+          </div>
+
+          <div className="filter-buttons">
+            <button
+              type="button"
+              className="search-button"
+              onClick={() => {
+                // Filtering is already live.
+                // This button is provided for the UI.
+                setSearch(search.trim());
+                setVariety(variety.trim());
+              }}
+            >
+              Search
+            </button>
+
+            <button
+              type="button"
+              className="clear-button"
+              onClick={clearFilters}
+            >
+              Clear
+            </button>
+          </div>
+        </section>
+
         {/* MESSAGE */}
+
         {message && (
           <div className="message">
             {message}
           </div>
         )}
 
-        {/* PRODUCTS */}
-        {products.length === 0 ? (
-          <div className="empty-card">
-            <div className="empty-icon">🌾</div>
+        {/* RESULTS */}
 
-            <h2>No products available</h2>
+        <section className="results-section">
+          <div className="results-header">
+            <h2>Available Products</h2>
 
-            <p>
-              Farmers haven't listed any products yet.
-              Please check again later.
-            </p>
-
-            <button
-              type="button"
-              onClick={loadProducts}
-              className="refresh-button"
-            >
-              ↻ Refresh
-            </button>
+            <span>
+              {filteredProducts.length} product
+              {filteredProducts.length !== 1
+                ? "s"
+                : ""}
+            </span>
           </div>
-        ) : (
-          <>
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">FRESH PRODUCE</p>
-                <h2>Available Products</h2>
-              </div>
 
-              <span className="product-count">
-                {products.length} product
-                {products.length !== 1 ? "s" : ""}
-              </span>
+          {filteredProducts.length === 0 ? (
+            <div className="empty-card">
+              <div className="empty-icon">🔍</div>
+
+              <h3>No products found</h3>
+
+              <p>
+                Try a different product name,
+                category, or variety.
+              </p>
+
+              <button
+                type="button"
+                className="clear-button"
+                onClick={clearFilters}
+              >
+                Clear Filters
+              </button>
             </div>
-
-            <div className="product-grid">
-              {products.map((product) => {
+          ) : (
+            <div className="products-grid">
+              {filteredProducts.map((product) => {
                 const quantity =
                   quantities[product.id] || 1;
 
                 const totalPrice =
                   Number(product.price) * quantity;
 
-                const maxQuantity =
-                  Number(product.quantity);
-
                 return (
-                  <div
-                    className="product-card"
+                  <article
                     key={product.id}
+                    className="product-card"
                   >
-                    {/* PRODUCT TOP */}
                     <div className="product-top">
-                      <div className="product-icon">
-                        🥕
+                      <div>
+                        <h3>{product.name}</h3>
+
+                        {product.variety && (
+                          <p className="variety">
+                            {product.variety}
+                          </p>
+                        )}
                       </div>
 
-                      <span className="available-badge">
-                        Available
-                      </span>
+                      {product.category && (
+                        <span className="category">
+                          {product.category}
+                        </span>
+                      )}
                     </div>
 
-                    {/* PRODUCT NAME */}
-                    <h3>{product.name}</h3>
+                    <p className="description">
+                      {product.description ||
+                        "Fresh farm product."}
+                    </p>
 
-                    {/* DESCRIPTION */}
-                    {product.description && (
-                      <p className="description">
-                        {product.description}
-                      </p>
-                    )}
+                    <div className="product-info">
+                      <div>
+                        <span>Price</span>
+                        <strong>
+                          ₹{product.price}
+                        </strong>
+                        <small>
+                          / {product.unit}
+                        </small>
+                      </div>
 
-                    {/* PRICE */}
-                    <div className="price">
-                      ₹{product.price}
-                      <span>
-                        {" "}
-                        / {product.unit}
-                      </span>
-                    </div>
-
-                    {/* AVAILABLE */}
-                    <div className="available-box">
-                      <span>Available quantity</span>
-
-                      <strong>
-                        {product.quantity}{" "}
-                        {product.unit}
-                      </strong>
+                      <div>
+                        <span>Available</span>
+                        <strong>
+                          {product.quantity}
+                        </strong>
+                        <small>
+                          {product.unit}
+                        </small>
+                      </div>
                     </div>
 
                     {/* QUANTITY */}
+
                     <div className="quantity-section">
-                      <span className="quantity-label">
-                        Quantity
-                      </span>
+                      <label>Quantity</label>
 
                       <div className="quantity-control">
                         <button
@@ -328,7 +469,7 @@ export default function BuyerPage() {
                             changeQuantity(
                               product.id,
                               -1,
-                              maxQuantity
+                              product.quantity
                             )
                           }
                           disabled={quantity <= 1}
@@ -336,9 +477,7 @@ export default function BuyerPage() {
                           −
                         </button>
 
-                        <span className="quantity-value">
-                          {quantity}
-                        </span>
+                        <span>{quantity}</span>
 
                         <button
                           type="button"
@@ -346,11 +485,12 @@ export default function BuyerPage() {
                             changeQuantity(
                               product.id,
                               1,
-                              maxQuantity
+                              product.quantity
                             )
                           }
                           disabled={
-                            quantity >= maxQuantity
+                            quantity >=
+                            Number(product.quantity)
                           }
                         >
                           +
@@ -358,62 +498,53 @@ export default function BuyerPage() {
                       </div>
                     </div>
 
-                    {/* TOTAL */}
-                    <div className="total-row">
-                      <span>Total</span>
+                    <div className="order-bottom">
+                      <div className="total">
+                        <span>Total</span>
+                        <strong>
+                          ₹{totalPrice}
+                        </strong>
+                      </div>
 
-                      <strong>
-                        ₹{totalPrice}
-                      </strong>
+                      <button
+                        type="button"
+                        className="buy-button"
+                        onClick={() =>
+                          handleBuy(product)
+                        }
+                        disabled={
+                          buying === product.id
+                        }
+                      >
+                        {buying === product.id
+                          ? "Placing Order..."
+                          : "Buy"}
+                      </button>
                     </div>
-
-                    {/* BUY */}
-                    <button
-                      type="button"
-                      className="buy-button"
-                      onClick={() =>
-                        handleBuy(product)
-                      }
-                      disabled={
-                        buying === product.id ||
-                        maxQuantity <= 0
-                      }
-                    >
-                      {buying === product.id
-                        ? "Placing Order..."
-                        : maxQuantity <= 0
-                        ? "Out of Stock"
-                        : "Buy Now"}
-                    </button>
-                  </div>
+                  </article>
                 );
               })}
             </div>
-          </>
-        )}
+          )}
+        </section>
 
-        {/* ORDERS CTA */}
-        <section className="orders-card">
-          <div>
-            <p className="eyebrow orders-eyebrow">
-              YOUR ORDERS
-            </p>
+        {/* ROLE BUTTONS */}
 
-            <h2>Track Your Orders</h2>
-
-            <p>
-              View your previous orders and check whether
-              farmers have accepted or rejected them.
-            </p>
-          </div>
+        <div className="role-buttons">
+          <Link
+            href="/login?role=farmer"
+            className="role-button"
+          >
+            I'm a Farmer
+          </Link>
 
           <Link
-            href="/buyer/orders"
-            className="orders-card-button"
+            href="/login?role=buyer"
+            className="role-button"
           >
-            View My Orders →
+            I'm a Buyer
           </Link>
-        </section>
+        </div>
       </div>
 
       <style jsx>{`
@@ -428,8 +559,6 @@ export default function BuyerPage() {
           margin: 0 auto;
         }
 
-        /* BACK */
-
         .back-button {
           display: inline-flex;
           align-items: center;
@@ -442,446 +571,363 @@ export default function BuyerPage() {
           color: #2e7d32;
           font-weight: 600;
           text-decoration: none;
-          transition: 0.2s ease;
         }
 
         .back-button:hover {
           background: #edf7ed;
-          color: #1b5e20;
         }
-
-        /* HEADER */
 
         .page-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 20px;
-          margin-bottom: 28px;
-        }
-
-        .eyebrow {
-          margin: 0 0 5px;
-          color: #2e7d32;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 1px;
+          text-align: center;
+          margin-bottom: 35px;
         }
 
         .page-header h1 {
-          margin: 0;
+          margin: 0 0 10px;
           color: #172019;
-          font-size: 36px;
-          line-height: 1.2;
+          font-size: 38px;
         }
 
-        .subtitle {
-          margin: 8px 0 0;
+        .page-header p {
+          margin: 0;
           color: #68736b;
-          font-size: 15px;
+          font-size: 18px;
         }
 
-        .orders-button {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 12px 18px;
+        .search-card {
+          background: white;
+          border: 1px solid #dfe5de;
+          border-radius: 16px;
+          padding: 28px;
+          margin-bottom: 35px;
+        }
+
+        .search-card h2 {
+          margin: 0 0 22px;
+          color: #172019;
+        }
+
+        .field {
+          margin-bottom: 18px;
+        }
+
+        .field label {
+          display: block;
+          margin-bottom: 8px;
+          color: #172019;
+          font-weight: 600;
+        }
+
+        .field input,
+        .field select {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 13px 14px;
+          border: 1px solid #ccd4cb;
           border-radius: 9px;
+          background: white;
+          color: #172019;
+          font-size: 16px;
+          outline: none;
+        }
+
+        .field input:focus,
+        .field select:focus {
+          border-color: #2e7d32;
+        }
+
+        .filter-buttons {
+          display: flex;
+          gap: 10px;
+          margin-top: 22px;
+        }
+
+        .search-button,
+        .clear-button,
+        .buy-button,
+        .role-button {
+          border: none;
+          border-radius: 9px;
+          padding: 12px 20px;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .search-button {
           background: #2e7d32;
           color: white;
-          font-weight: 600;
-          text-decoration: none;
-          white-space: nowrap;
-          transition: 0.2s ease;
         }
 
-        .orders-button:hover {
-          background: #1b5e20;
-          color: white;
+        .search-button:hover {
+          background: #256b29;
         }
 
-        /* MESSAGE */
+        .clear-button {
+          background: #edf1ed;
+          color: #334036;
+        }
+
+        .clear-button:hover {
+          background: #e0e6e0;
+        }
 
         .message {
           margin-bottom: 25px;
           padding: 14px 16px;
-          border: 1px solid #cce8cf;
-          border-radius: 10px;
+          border-radius: 9px;
           background: #edf7ed;
-          color: #1b5e20;
+          border: 1px solid #cce3cc;
+          color: #245c28;
           font-weight: 600;
         }
 
-        /* SECTION */
-
-        .section-heading {
+        .results-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 15px;
           margin-bottom: 18px;
         }
 
-        .section-heading h2 {
+        .results-header h2 {
           margin: 0;
           color: #172019;
-          font-size: 24px;
         }
 
-        .product-count {
+        .results-header span {
           color: #68736b;
-          font-size: 14px;
         }
 
-        /* PRODUCTS */
-
-        .product-grid {
+        .products-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 18px;
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(280px, 1fr)
+          );
+          gap: 20px;
         }
 
         .product-card {
-          padding: 20px;
           background: white;
-          border: 1px solid #e1e6df;
-          border-radius: 15px;
+          border: 1px solid #dfe5de;
+          border-radius: 16px;
+          padding: 22px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-          transition: 0.2s ease;
-        }
-
-        .product-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 7px 20px rgba(0, 0, 0, 0.07);
         }
 
         .product-top {
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          margin-bottom: 15px;
+          gap: 12px;
+          align-items: flex-start;
         }
 
-        .product-icon {
-          width: 48px;
-          height: 48px;
-          display: grid;
-          place-items: center;
-          border-radius: 12px;
-          background: #f0f7ed;
-          font-size: 24px;
-        }
-
-        .available-badge {
-          padding: 5px 10px;
-          border-radius: 20px;
-          background: #dcfce7;
-          color: #166534;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .product-card h3 {
-          margin: 0 0 7px;
+        .product-top h3 {
+          margin: 0;
           color: #172019;
-          font-size: 20px;
+          font-size: 23px;
+        }
+
+        .variety {
+          margin: 5px 0 0;
+          color: #2e7d32;
+          font-weight: 600;
+        }
+
+        .category {
+          padding: 6px 10px;
+          border-radius: 20px;
+          background: #edf7ed;
+          color: #2e7d32;
+          font-size: 13px;
+          font-weight: 700;
+          white-space: nowrap;
         }
 
         .description {
           min-height: 42px;
-          margin: 0 0 15px;
+          margin: 16px 0;
           color: #68736b;
-          font-size: 13px;
           line-height: 1.5;
         }
 
-        .price {
-          color: #2e7d32;
-          font-size: 23px;
-          font-weight: 700;
+        .product-info {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 20px;
         }
 
-        .price span {
-          color: #68736b;
-          font-size: 13px;
-          font-weight: 400;
-        }
-
-        .available-box {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 10px;
-          margin-top: 15px;
-          padding: 11px 12px;
+        .product-info div {
+          padding: 12px;
           border-radius: 9px;
           background: #f6f8f5;
         }
 
-        .available-box span {
+        .product-info span {
+          display: block;
           color: #68736b;
-          font-size: 12px;
-        }
-
-        .available-box strong {
-          color: #263128;
           font-size: 13px;
+          margin-bottom: 4px;
         }
 
-        /* QUANTITY */
+        .product-info strong {
+          color: #172019;
+          font-size: 19px;
+        }
+
+        .product-info small {
+          margin-left: 4px;
+          color: #68736b;
+        }
 
         .quantity-section {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 12px;
-          margin-top: 17px;
+          margin-bottom: 20px;
         }
 
-        .quantity-label {
-          color: #263128;
-          font-size: 14px;
+        .quantity-section label {
           font-weight: 600;
+          color: #172019;
         }
 
         .quantity-control {
           display: flex;
           align-items: center;
-          gap: 10px;
+          border: 1px solid #ccd4cb;
+          border-radius: 9px;
+          overflow: hidden;
         }
 
         .quantity-control button {
-          width: 36px;
-          height: 36px;
-          min-width: 36px;
-          padding: 0;
-          border: 1px solid #d9e0d8;
-          border-radius: 8px;
-          background: white;
+          width: 38px;
+          height: 38px;
+          border: none;
+          background: #f6f8f5;
           color: #2e7d32;
           font-size: 20px;
-          font-weight: 600;
           cursor: pointer;
-        }
-
-        .quantity-control button:hover:not(:disabled) {
-          background: #edf7ed;
         }
 
         .quantity-control button:disabled {
-          opacity: 0.4;
+          color: #aab2aa;
           cursor: not-allowed;
         }
 
-        .quantity-value {
-          min-width: 25px;
+        .quantity-control span {
+          width: 38px;
           text-align: center;
-          color: #172019;
           font-weight: 700;
         }
 
-        /* TOTAL */
-
-        .total-row {
+        .order-bottom {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-top: 18px;
-          padding-top: 16px;
-          border-top: 1px solid #edf0ec;
+          gap: 15px;
+          padding-top: 18px;
+          border-top: 1px solid #e7ebe6;
         }
 
-        .total-row span {
+        .total span {
+          display: block;
           color: #68736b;
-          font-size: 14px;
+          font-size: 13px;
         }
 
-        .total-row strong {
-          color: #2e7d32;
-          font-size: 20px;
+        .total strong {
+          color: #172019;
+          font-size: 22px;
         }
-
-        /* BUY */
 
         .buy-button {
-          width: 100%;
-          margin-top: 17px;
-          padding: 12px 18px;
-          border: none;
-          border-radius: 9px;
           background: #2e7d32;
           color: white;
-          font-family: inherit;
-          font-size: 15px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: 0.2s ease;
         }
 
-        .buy-button:hover:not(:disabled) {
-          background: #1b5e20;
+        .buy-button:hover {
+          background: #256b29;
         }
 
         .buy-button:disabled {
-          opacity: 0.6;
+          background: #9eaaa0;
           cursor: not-allowed;
         }
 
-        /* EMPTY */
-
         .empty-card {
-          padding: 55px 20px;
           background: white;
-          border: 1px solid #e1e6df;
-          border-radius: 15px;
+          border: 1px solid #dfe5de;
+          border-radius: 16px;
+          padding: 55px 20px;
           text-align: center;
         }
 
         .empty-icon {
-          font-size: 42px;
+          font-size: 40px;
         }
 
-        .empty-card h2 {
-          margin: 12px 0 5px;
+        .empty-card h3 {
+          margin: 12px 0 6px;
           color: #172019;
         }
 
         .empty-card p {
-          margin: 0 auto 20px;
-          max-width: 500px;
+          margin: 0 0 20px;
           color: #68736b;
         }
 
-        .refresh-button {
-          padding: 11px 18px;
-          border: none;
-          border-radius: 9px;
+        .role-buttons {
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          margin-top: 45px;
+        }
+
+        .role-button {
           background: #2e7d32;
           color: white;
-          font-family: inherit;
-          font-weight: 600;
-          cursor: pointer;
-        }
-
-        .refresh-button:hover {
-          background: #1b5e20;
-        }
-
-        /* ORDERS CTA */
-
-        .orders-card {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 25px;
-          margin-top: 38px;
-          padding: 25px;
-          border-radius: 16px;
-          background: #1b5e20;
-        }
-
-        .orders-eyebrow {
-          color: #b7e0ba;
-        }
-
-        .orders-card h2 {
-          margin: 0;
-          color: white;
-          font-size: 22px;
-        }
-
-        .orders-card p:not(.eyebrow) {
-          margin: 6px 0 0;
-          color: #d9eadb;
-        }
-
-        .orders-card-button {
-          flex-shrink: 0;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 12px 18px;
-          border-radius: 9px;
-          background: white;
-          color: #1b5e20;
-          font-weight: 700;
           text-decoration: none;
-          transition: 0.2s ease;
         }
 
-        .orders-card-button:hover {
-          background: #f1f8f2;
-          color: #1b5e20;
+        .role-button:hover {
+          background: #256b29;
         }
-
-        /* TABLET */
-
-        @media (max-width: 900px) {
-          .product-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
-        /* MOBILE */
 
         @media (max-width: 650px) {
           .buyer-page {
             padding: 18px 12px 40px;
           }
 
-          .back-button {
-            width: 100%;
-            margin-bottom: 20px;
-          }
-
-          .page-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 15px;
-            margin-bottom: 22px;
-          }
-
           .page-header h1 {
-            font-size: 29px;
+            font-size: 30px;
           }
 
-          .orders-button {
-            width: 100%;
-          }
-
-          .section-heading {
-            align-items: flex-start;
-            flex-direction: column;
-          }
-
-          .section-heading h2 {
-            font-size: 22px;
-          }
-
-          .product-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .product-card {
-            padding: 18px;
-          }
-
-          .orders-card {
-            flex-direction: column;
-            align-items: stretch;
+          .search-card {
             padding: 20px;
           }
 
-          .orders-card-button {
-            width: 100%;
+          .results-header {
+            align-items: flex-start;
+            gap: 10px;
           }
 
-          .available-box {
-            flex-wrap: wrap;
+          .product-top {
+            flex-direction: column;
           }
 
-          .quantity-section {
-            margin-top: 15px;
+          .quantity-section,
+          .order-bottom {
+            align-items: flex-start;
+          }
+
+          .role-buttons {
+            flex-direction: column;
+          }
+
+          .role-button {
+            text-align: center;
           }
         }
       `}</style>

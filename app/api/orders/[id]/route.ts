@@ -11,24 +11,40 @@ export async function PATCH(
 
     const { status } = body;
 
-    if (!status || !["accepted", "rejected"].includes(status)) {
+    // Only these status changes are allowed
+    if (
+      !status ||
+      !["accepted", "rejected"].includes(status)
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid status",
+          error:
+            "Invalid status. Use accepted or rejected.",
         },
         { status: 400 }
       );
     }
 
-    // Get the order and product information
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .select("id, product_id, quantity, status")
-      .eq("id", id)
-      .single();
+    // Get the order
+    const { data: order, error: orderError } =
+      await supabase
+        .from("orders")
+        .select(`
+          id,
+          product_id,
+          quantity,
+          status
+        `)
+        .eq("id", id)
+        .single();
 
     if (orderError || !order) {
+      console.error(
+        "Order lookup error:",
+        orderError
+      );
+
       return NextResponse.json(
         {
           success: false,
@@ -38,19 +54,34 @@ export async function PATCH(
       );
     }
 
-    // Prevent processing the same order twice
+    // Only pending orders can be accepted/rejected
     if (order.status !== "pending") {
       return NextResponse.json(
         {
           success: false,
-          error: `Order is already ${order.status}`,
+          error: `Order is already ${order.status}.`,
         },
         { status: 400 }
       );
     }
 
-    // If farmer accepts the order, reduce product quantity
-    if (status === "accepted") {
+    /*
+      IMPORTANT:
+
+      The POST /api/orders route already reduces
+      product quantity when the buyer places the order.
+
+      Therefore:
+
+      ACCEPTED:
+        Do NOT reduce stock again.
+
+      REJECTED:
+        Restore the reserved quantity.
+    */
+
+    if (status === "rejected") {
+      // Get current product quantity
       const { data: product, error: productError } =
         await supabase
           .from("products")
@@ -59,69 +90,82 @@ export async function PATCH(
           .single();
 
       if (productError || !product) {
+        console.error(
+          "Product lookup error:",
+          productError
+        );
+
         return NextResponse.json(
           {
             success: false,
-            error: "Product not found",
+            error:
+              "Product associated with this order was not found.",
           },
           { status: 404 }
         );
       }
 
-      const currentQuantity = Number(product.quantity);
-      const orderedQuantity = Number(order.quantity);
+      const currentQuantity =
+        Number(product.quantity);
 
-      if (orderedQuantity > currentQuantity) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Not enough product quantity available",
-          },
-          { status: 400 }
-        );
-      }
+      const orderedQuantity =
+        Number(order.quantity);
 
-      const newQuantity =
-        currentQuantity - orderedQuantity;
+      const restoredQuantity =
+        currentQuantity + orderedQuantity;
 
-      const { error: quantityError } = await supabase
-        .from("products")
-        .update({
-          quantity: newQuantity,
-        })
-        .eq("id", order.product_id);
+      // Restore reserved stock
+      const { error: quantityError } =
+        await supabase
+          .from("products")
+          .update({
+            quantity: restoredQuantity,
+          })
+          .eq("id", order.product_id);
 
       if (quantityError) {
         console.error(
-          "Product quantity update error:",
+          "Failed to restore product quantity:",
           quantityError
         );
 
         return NextResponse.json(
           {
             success: false,
-            error: quantityError.message,
+            error:
+              "Order could not be rejected because product quantity could not be restored.",
           },
           { status: 500 }
         );
       }
     }
 
-    // Update order status
-    const { data, error } = await supabase
+    // Update the order status
+    const {
+      data: updatedOrder,
+      error: updateError,
+    } = await supabase
       .from("orders")
-      .update({ status })
+      .update({
+        status,
+      })
       .eq("id", id)
+      .eq("status", "pending")
       .select()
       .single();
 
-    if (error) {
-      console.error("Supabase update error:", error);
+    if (updateError || !updatedOrder) {
+      console.error(
+        "Order status update error:",
+        updateError
+      );
 
       return NextResponse.json(
         {
           success: false,
-          error: error.message,
+          error:
+            updateError?.message ||
+            "Order status could not be updated.",
         },
         { status: 500 }
       );
@@ -129,16 +173,22 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      message: `Order ${status} successfully`,
-      order: data,
+      message:
+        status === "accepted"
+          ? "Order accepted successfully."
+          : "Order rejected successfully. Product quantity restored.",
+      order: updatedOrder,
     });
   } catch (error) {
-    console.error("Update order error:", error);
+    console.error(
+      "Update order error:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to update order",
+        error: "Failed to update order.",
       },
       { status: 500 }
     );

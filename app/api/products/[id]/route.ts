@@ -22,6 +22,8 @@ export async function PATCH(
       price,
       quantity,
       unit,
+      category,
+      variety,
     } = body;
 
     const updates: Record<string, any> = {};
@@ -44,6 +46,14 @@ export async function PATCH(
 
     if (unit !== undefined) {
       updates.unit = unit;
+    }
+
+    if (category !== undefined) {
+      updates.category = category;
+    }
+
+    if (variety !== undefined) {
+      updates.variety = variety;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -74,7 +84,6 @@ export async function PATCH(
       );
     }
 
-    // If Supabase returned no rows, the update was not allowed/found.
     if (!data || data.length === 0) {
       return NextResponse.json(
         {

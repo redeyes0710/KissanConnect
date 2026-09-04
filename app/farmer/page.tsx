@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 
 export default function FarmerPage() {
   const [name, setName] = useState("");
+  const [variety, setVariety] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -19,6 +20,7 @@ export default function FarmerPage() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [editVariety, setEditVariety] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editQuantity, setEditQuantity] = useState("");
@@ -74,17 +76,19 @@ export default function FarmerPage() {
 
       const result = await createProduct({
         name,
+        variety,
         description,
         price: Number(price),
         quantity: Number(quantity),
         unit,
         farmer_id: user.id,
-      });
+      } as any);
 
       if (result.success) {
         setMessage("Product listed successfully! ✅");
 
         setName("");
+        setVariety("");
         setDescription("");
         setPrice("");
         setQuantity("");
@@ -105,6 +109,7 @@ export default function FarmerPage() {
   function startEditing(product: any) {
     setEditingId(product.id);
     setEditName(product.name || "");
+    setEditVariety(product.variety || "");
     setEditDescription(product.description || "");
     setEditPrice(String(product.price ?? ""));
     setEditQuantity(String(product.quantity ?? ""));
@@ -124,6 +129,7 @@ export default function FarmerPage() {
         },
         body: JSON.stringify({
           name: editName,
+          variety: editVariety,
           description: editDescription,
           price: Number(editPrice),
           quantity: Number(editQuantity),
@@ -236,6 +242,7 @@ export default function FarmerPage() {
             <p className="eyebrow">LIST PRODUCE</p>
             <h2>Add New Product</h2>
           </div>
+
           <span className="section-icon">＋</span>
         </div>
 
@@ -243,17 +250,32 @@ export default function FarmerPage() {
           <div className="form-row">
             <div className="form-group">
               <label>Product Name</label>
+
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Tomato"
+                placeholder="e.g. Mango"
                 required
               />
             </div>
 
             <div className="form-group">
+              <label>Variety</label>
+
+              <input
+                type="text"
+                value={variety}
+                onChange={(e) => setVariety(e.target.value)}
+                placeholder="e.g. Hapus, Langda, Dasheri"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
               <label>Price (₹)</label>
+
               <input
                 type="number"
                 value={price}
@@ -263,11 +285,10 @@ export default function FarmerPage() {
                 required
               />
             </div>
-          </div>
 
-          <div className="form-row">
             <div className="form-group">
               <label>Quantity</label>
+
               <input
                 type="number"
                 value={quantity}
@@ -277,23 +298,25 @@ export default function FarmerPage() {
                 required
               />
             </div>
+          </div>
 
-            <div className="form-group">
-              <label>Unit</label>
-              <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-              >
-                <option value="kg">Kilogram (kg)</option>
-                <option value="quintal">Quintal</option>
-                <option value="ton">Ton</option>
-                <option value="piece">Piece</option>
-              </select>
-            </div>
+          <div className="form-group">
+            <label>Unit</label>
+
+            <select
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+            >
+              <option value="kg">Kilogram (kg)</option>
+              <option value="quintal">Quintal</option>
+              <option value="ton">Ton</option>
+              <option value="piece">Piece</option>
+            </select>
           </div>
 
           <div className="form-group">
             <label>Description</label>
+
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -302,16 +325,16 @@ export default function FarmerPage() {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="primary-btn">
+          <button
+            type="submit"
+            disabled={loading}
+            className="primary-btn"
+          >
             {loading ? "Creating..." : "＋ Create Listing"}
           </button>
         </form>
 
-        {message && (
-          <div className="message">
-            {message}
-          </div>
-        )}
+        {message && <div className="message">{message}</div>}
       </section>
 
       {/* PRODUCTS */}
@@ -323,7 +346,8 @@ export default function FarmerPage() {
           </div>
 
           <span className="product-count">
-            {products.length} listing{products.length !== 1 ? "s" : ""}
+            {products.length} listing
+            {products.length !== 1 ? "s" : ""}
           </span>
         </div>
 
@@ -335,7 +359,9 @@ export default function FarmerPage() {
         ) : products.length === 0 ? (
           <div className="empty-card">
             <div className="empty-icon">🌾</div>
+
             <h3>No products yet</h3>
+
             <p>
               Add your first product listing using the form above.
             </p>
@@ -348,6 +374,7 @@ export default function FarmerPage() {
                   <div className="edit-area">
                     <div className="edit-header">
                       <h3>Edit Product</h3>
+
                       <button
                         type="button"
                         className="close-btn"
@@ -359,15 +386,32 @@ export default function FarmerPage() {
 
                     <div className="form-group">
                       <label>Product Name</label>
+
                       <input
                         type="text"
                         value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
+                        onChange={(e) =>
+                          setEditName(e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Variety</label>
+
+                      <input
+                        type="text"
+                        value={editVariety}
+                        onChange={(e) =>
+                          setEditVariety(e.target.value)
+                        }
+                        placeholder="e.g. Hapus, Langda, Dasheri"
                       />
                     </div>
 
                     <div className="form-group">
                       <label>Description</label>
+
                       <textarea
                         value={editDescription}
                         onChange={(e) =>
@@ -380,6 +424,7 @@ export default function FarmerPage() {
                     <div className="form-row">
                       <div className="form-group">
                         <label>Price</label>
+
                         <input
                           type="number"
                           value={editPrice}
@@ -392,6 +437,7 @@ export default function FarmerPage() {
 
                       <div className="form-group">
                         <label>Quantity</label>
+
                         <input
                           type="number"
                           value={editQuantity}
@@ -405,9 +451,12 @@ export default function FarmerPage() {
 
                     <div className="form-group">
                       <label>Unit</label>
+
                       <select
                         value={editUnit}
-                        onChange={(e) => setEditUnit(e.target.value)}
+                        onChange={(e) =>
+                          setEditUnit(e.target.value)
+                        }
                       >
                         <option value="kg">kg</option>
                         <option value="quintal">quintal</option>
@@ -446,6 +495,13 @@ export default function FarmerPage() {
 
                     <h3>{product.name}</h3>
 
+                    {product.variety && (
+                      <p className="product-variety">
+                        Variety:{" "}
+                        <strong>{product.variety}</strong>
+                      </p>
+                    )}
+
                     {product.description && (
                       <p className="product-description">
                         {product.description}
@@ -454,11 +510,13 @@ export default function FarmerPage() {
 
                     <div className="product-price">
                       ₹{product.price}
+
                       <span> / {product.unit}</span>
                     </div>
 
                     <div className="quantity-box">
                       <span>Available quantity</span>
+
                       <strong>
                         {product.quantity} {product.unit}
                       </strong>
@@ -493,7 +551,9 @@ export default function FarmerPage() {
       <section className="orders-card">
         <div>
           <p className="eyebrow">ORDERS</p>
+
           <h2>Manage Buyer Orders</h2>
+
           <p>
             Review incoming orders and accept or reject pending requests.
           </p>
@@ -755,6 +815,16 @@ export default function FarmerPage() {
           margin: 0 0 7px;
           color: #172019;
           font-size: 19px;
+        }
+
+        .product-variety {
+          margin: 0 0 8px;
+          color: #2e7d32;
+          font-size: 13px;
+        }
+
+        .product-variety strong {
+          font-weight: 700;
         }
 
         .product-description {

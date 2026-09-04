@@ -1,13 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { getOrders } from "@/lib/api-client";
 import { supabase } from "@/lib/supabase";
 
-export default function BuyerOrdersPage() {
-  const [orders, setOrders] = useState<any[]>([]);
+type OrderStatus = "pending" | "accepted" | "rejected";
+
+type Order = {
+  id: string;
+  product_id: string;
+  buyer_id: string;
+  quantity: number;
+  total_price: number;
+  status: OrderStatus;
+  created_at?: string;
+  product_name?: string;
+  product_price?: number;
+  product_unit?: string;
+};
+
+export default function FarmerOrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -25,12 +40,14 @@ export default function BuyerOrdersPage() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        setError("Please login to view your orders.");
+        setError("Please login as a farmer.");
         setOrders([]);
         return;
       }
 
-      const result = await getOrders(user.id, "buyer");
+      const result = await getOrders(user.id, "farmer");
+
+      console.log("Farmer orders:", result);
 
       setOrders(result.orders || []);
     } catch (error) {
@@ -41,52 +58,83 @@ export default function BuyerOrdersPage() {
     }
   }
 
-  function getStatusStyle(status: string) {
-    const currentStatus = String(status || "pending").toLowerCase();
+  async function updateOrderStatus(
+    orderId: string,
+    newStatus: "accepted" | "rejected"
+  ) {
+    try {
+      setUpdating(orderId);
+      setError("");
 
-    if (currentStatus === "accepted") {
-      return {
-        background: "#dcfce7",
-        color: "#166534",
-      };
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      });
+
+      const result = await response.json();
+
+      console.log("Update response:", result);
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.error || "Failed to update order"
+        );
+      }
+
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                status: newStatus,
+              }
+            : order
+        )
+      );
+    } catch (error: any) {
+      console.error("Update order error:", error);
+
+      setError(
+        error.message || "Failed to update order."
+      );
+    } finally {
+      setUpdating(null);
     }
-
-    if (currentStatus === "rejected") {
-      return {
-        background: "#fee2e2",
-        color: "#991b1b",
-      };
-    }
-
-    return {
-      background: "#fef3c7",
-      color: "#92400e",
-    };
   }
 
   if (loading) {
     return (
-      <main className="buyer-orders-page">
+      <main className="page">
         <div className="container">
-          <Link href="/buyer" className="back-button">
-            ← Back to Marketplace
-          </Link>
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="back-button"
+          >
+            ← Back to Dashboard
+          </button>
 
           <div className="loading-card">
-            <div className="loading-icon">⏳</div>
-            <h2>Loading your orders...</h2>
+            <div className="loading-icon">📦</div>
+            <h1>Farmer Orders</h1>
+            <p>Loading orders...</p>
           </div>
         </div>
 
         <style jsx>{`
-          .buyer-orders-page {
+          .page {
             min-height: 100vh;
+            padding: 30px 16px 60px;
             background: #f6f8f5;
-            padding: 25px 16px 50px;
           }
 
           .container {
-            max-width: 1000px;
+            width: min(1000px, 100%);
             margin: 0 auto;
           }
 
@@ -100,28 +148,34 @@ export default function BuyerOrdersPage() {
             background: white;
             color: #2e7d32;
             font-weight: 600;
-            text-decoration: none;
+            font-size: 15px;
+            cursor: pointer;
           }
 
           .back-button:hover {
             background: #edf7ed;
-            color: #1b5e20;
           }
 
           .loading-card {
+            padding: 55px 20px;
             background: white;
-            border: 1px solid #e1e6df;
-            border-radius: 14px;
-            padding: 50px 20px;
+            border: 1px solid #dfe5de;
+            border-radius: 16px;
             text-align: center;
           }
 
           .loading-icon {
-            font-size: 35px;
+            font-size: 42px;
           }
 
-          .loading-card h2 {
+          .loading-card h1 {
+            margin: 12px 0 6px;
             color: #172019;
+          }
+
+          .loading-card p {
+            margin: 0;
+            color: #68736b;
           }
         `}</style>
       </main>
@@ -129,177 +183,270 @@ export default function BuyerOrdersPage() {
   }
 
   return (
-    <main className="buyer-orders-page">
+    <main className="page">
       <div className="container">
-        <Link href="/buyer" className="back-button">
-          ← Back to Marketplace
-        </Link>
 
-        <header className="page-header">
+        {/* BACK BUTTON */}
+
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="back-button"
+        >
+          ← Back to Dashboard
+        </button>
+
+        {/* HEADER */}
+
+        <div className="page-header">
           <div>
-            <p className="eyebrow">BUYER PORTAL</p>
-            <h1>My Orders</h1>
-            <p className="subtitle">
-              Track the status of your orders from farmers.
+            <h1>Farmer Orders</h1>
+            <p>
+              Manage orders placed for your products.
             </p>
           </div>
 
           <button
             type="button"
-            className="refresh-button"
             onClick={loadOrders}
+            className="refresh-button"
           >
             ↻ Refresh
           </button>
-        </header>
+        </div>
+
+        {/* ERROR */}
 
         {error && (
-          <div className="error-card">
-            {error}
+          <div className="error-message">
+            <span>⚠️</span>
+            <span>{error}</span>
           </div>
         )}
+
+        {/* EMPTY */}
 
         {orders.length === 0 ? (
           <div className="empty-card">
             <div className="empty-icon">📦</div>
+
             <h2>No orders yet</h2>
+
             <p>
-              You haven't placed any orders yet.
+              Orders placed for your products will
+              appear here.
             </p>
 
-            <Link href="/buyer" className="shop-button">
-              Browse Products
-            </Link>
+            <button
+              type="button"
+              onClick={loadOrders}
+              className="refresh-button"
+            >
+              Refresh Orders
+            </button>
           </div>
         ) : (
-          <div className="orders-list">
-            {orders.map((order) => {
-              const status = String(
-                order.status || "pending"
-              ).toLowerCase();
+          <>
+            {/* ORDER COUNT */}
 
-              const statusStyle = getStatusStyle(status);
+            <div className="orders-summary">
+              <strong>
+                {orders.length}{" "}
+                {orders.length === 1
+                  ? "Order"
+                  : "Orders"}
+              </strong>
 
-              return (
-                <div className="order-card" key={order.id}>
-                  <div className="order-header">
-                    <div>
-                      <p className="order-label">ORDER</p>
+              <span>
+                {orders.filter(
+                  (order) =>
+                    order.status === "pending"
+                ).length}{" "}
+                pending
+              </span>
+            </div>
 
-                      <h2>
-                        #{order.id.slice(0, 8)}
-                      </h2>
-                    </div>
+            {/* ORDERS */}
 
-                    <span
-                      className="status-badge"
-                      style={{
-                        background: statusStyle.background,
-                        color: statusStyle.color,
-                      }}
-                    >
-                      {status}
-                    </span>
-                  </div>
+            <div className="orders-list">
+              {orders.map((order) => {
+                const status = String(
+                  order.status || "pending"
+                ).toLowerCase() as OrderStatus;
 
-                  <div className="order-details">
-                    <div className="detail">
-                      <span>Product</span>
-                      <strong>
-                        {order.product_name ||
-                          order.product_id ||
-                          "Unknown Product"}
-                      </strong>
-                    </div>
+                const isUpdating =
+                  updating === order.id;
 
-                    <div className="detail">
-                      <span>Quantity</span>
-                      <strong>
-                        {order.quantity}{" "}
-                        {order.product_unit || ""}
-                      </strong>
-                    </div>
-
-                    <div className="detail">
-                      <span>Price</span>
-                      <strong>
-                        ₹{order.product_price ?? "N/A"}
-                        {order.product_unit
-                          ? ` / ${order.product_unit}`
-                          : ""}
-                      </strong>
-                    </div>
-
-                    <div className="detail">
-                      <span>Total</span>
-                      <strong className="total-price">
-                        ₹{order.total_price}
-                      </strong>
-                    </div>
-
-                    <div className="detail">
-                      <span>Ordered On</span>
-                      <strong>
-                        {order.created_at
-                          ? new Date(
-                              order.created_at
-                            ).toLocaleString()
-                          : "N/A"}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div
-                    className="status-message"
-                    style={{
-                      background:
-                        statusStyle.background,
-                      color: statusStyle.color,
-                    }}
+                return (
+                  <article
+                    key={order.id}
+                    className="order-card"
                   >
-                    {status === "accepted" && (
-                      <>
-                        ✓ Your order has been accepted by
-                        the farmer.
-                      </>
-                    )}
 
-                    {status === "rejected" && (
-                      <>
-                        ✕ Your order has been rejected by
-                        the farmer.
-                      </>
-                    )}
+                    {/* ORDER HEADER */}
+
+                    <div className="order-header">
+                      <div>
+                        <h2>
+                          Order #
+                          {order.id.slice(0, 8)}
+                        </h2>
+
+                        {order.created_at && (
+                          <p className="date">
+                            {new Date(
+                              order.created_at
+                            ).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+
+                      <span
+                        className={`status ${status}`}
+                      >
+                        {status}
+                      </span>
+                    </div>
+
+                    {/* PRODUCT */}
+
+                    <div className="product-section">
+                      <div className="product-icon">
+                        🌾
+                      </div>
+
+                      <div>
+                        <span className="label">
+                          Product
+                        </span>
+
+                        <strong>
+                          {order.product_name ||
+                            order.product_id}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* DETAILS */}
+
+                    <div className="details-grid">
+
+                      <div className="detail">
+                        <span>Buyer ID</span>
+                        <strong className="buyer-id">
+                          {order.buyer_id || "N/A"}
+                        </strong>
+                      </div>
+
+                      <div className="detail">
+                        <span>Quantity</span>
+
+                        <strong>
+                          {order.quantity}{" "}
+                          {order.product_unit || ""}
+                        </strong>
+                      </div>
+
+                      <div className="detail">
+                        <span>Price</span>
+
+                        <strong>
+                          ₹
+                          {order.product_price ??
+                            "N/A"}
+                        </strong>
+                      </div>
+
+                      <div className="detail">
+                        <span>Total</span>
+
+                        <strong className="total-price">
+                          ₹{order.total_price}
+                        </strong>
+                      </div>
+
+                    </div>
+
+                    {/* ACTIONS */}
 
                     {status === "pending" && (
-                      <>
-                        ⏳ Your order is waiting for the
-                        farmer's response.
-                      </>
+                      <div className="actions">
+
+                        <button
+                          type="button"
+                          className="accept-button"
+                          onClick={() =>
+                            updateOrderStatus(
+                              order.id,
+                              "accepted"
+                            )
+                          }
+                          disabled={isUpdating}
+                        >
+                          {isUpdating
+                            ? "Updating..."
+                            : "✓ Accept Order"}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="reject-button"
+                          onClick={() =>
+                            updateOrderStatus(
+                              order.id,
+                              "rejected"
+                            )
+                          }
+                          disabled={isUpdating}
+                        >
+                          {isUpdating
+                            ? "Updating..."
+                            : "✕ Reject Order"}
+                        </button>
+
+                      </div>
                     )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+
+                    {/* ACCEPTED */}
+
+                    {status === "accepted" && (
+                      <div className="accepted-message">
+                        ✓ This order has been accepted.
+                      </div>
+                    )}
+
+                    {/* REJECTED */}
+
+                    {status === "rejected" && (
+                      <div className="rejected-message">
+                        ✕ This order has been rejected.
+                      </div>
+                    )}
+
+                  </article>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
       <style jsx>{`
-        .buyer-orders-page {
+        .page {
           min-height: 100vh;
+          padding: 30px 16px 60px;
           background: #f6f8f5;
-          padding: 25px 16px 60px;
         }
 
         .container {
-          max-width: 1000px;
+          width: min(1000px, 100%);
           margin: 0 auto;
         }
 
         .back-button {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           padding: 10px 16px;
           margin-bottom: 25px;
           border: 1px solid #e1e6df;
@@ -307,13 +454,13 @@ export default function BuyerOrdersPage() {
           background: white;
           color: #2e7d32;
           font-weight: 600;
-          text-decoration: none;
-          transition: 0.2s ease;
+          font-size: 15px;
+          font-family: inherit;
+          cursor: pointer;
         }
 
         .back-button:hover {
           background: #edf7ed;
-          color: #1b5e20;
         }
 
         .page-header {
@@ -324,145 +471,265 @@ export default function BuyerOrdersPage() {
           margin-bottom: 30px;
         }
 
-        .eyebrow {
-          margin: 0 0 5px;
-          color: #2e7d32;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 1px;
-        }
-
         .page-header h1 {
-          margin: 0;
+          margin: 0 0 6px;
           color: #172019;
-          font-size: 34px;
+          font-size: 36px;
         }
 
-        .subtitle {
-          margin: 8px 0 0;
+        .page-header p {
+          margin: 0;
           color: #68736b;
+          font-size: 16px;
         }
 
         .refresh-button {
-          padding: 11px 18px;
-          border: none;
+          padding: 10px 17px;
+          border: 1px solid #cbd7ca;
           border-radius: 9px;
-          background: #2e7d32;
-          color: white;
-          font-family: inherit;
+          background: white;
+          color: #2e7d32;
+          font-weight: 700;
           font-size: 14px;
-          font-weight: 600;
           cursor: pointer;
         }
 
         .refresh-button:hover {
-          background: #1b5e20;
+          background: #edf7ed;
         }
 
-        .error-card {
-          margin-bottom: 20px;
+        .error-message {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          margin-bottom: 25px;
           padding: 14px 16px;
-          border-radius: 9px;
+          border: 1px solid #fecaca;
+          border-radius: 10px;
           background: #fee2e2;
           color: #991b1b;
-          font-weight: 500;
+          font-weight: 600;
+        }
+
+        .orders-summary {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 18px;
+          padding: 14px 18px;
+          border: 1px solid #dfe5de;
+          border-radius: 10px;
+          background: white;
+        }
+
+        .orders-summary strong {
+          color: #172019;
+        }
+
+        .orders-summary span {
+          color: #92400e;
+          font-weight: 600;
         }
 
         .orders-list {
           display: grid;
-          gap: 18px;
+          gap: 20px;
         }
 
         .order-card {
-          padding: 22px;
+          padding: 23px;
+          border: 1px solid #dfe5de;
+          border-radius: 16px;
           background: white;
-          border: 1px solid #e1e6df;
-          border-radius: 15px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .order-header {
           display: flex;
           justify-content: space-between;
-          align-items: center;
+          align-items: flex-start;
           gap: 15px;
+          margin-bottom: 22px;
           padding-bottom: 18px;
-          border-bottom: 1px solid #edf0ec;
-        }
-
-        .order-label {
-          margin: 0 0 3px;
-          color: #879087;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 1px;
+          border-bottom: 1px solid #e7ebe6;
         }
 
         .order-header h2 {
           margin: 0;
           color: #172019;
-          font-size: 21px;
+          font-size: 20px;
         }
 
-        .status-badge {
-          padding: 7px 13px;
+        .date {
+          margin: 5px 0 0;
+          color: #68736b;
+          font-size: 13px;
+        }
+
+        .status {
+          padding: 7px 14px;
           border-radius: 20px;
           font-size: 13px;
           font-weight: 700;
           text-transform: capitalize;
         }
 
-        .order-details {
+        .status.pending {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
+        .status.accepted {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        .status.rejected {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+
+        .product-section {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 20px;
+        }
+
+        .product-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          background: #edf7ed;
+          font-size: 25px;
+        }
+
+        .label {
+          display: block;
+          margin-bottom: 4px;
+          color: #68736b;
+          font-size: 13px;
+        }
+
+        .product-section strong {
+          color: #172019;
+          font-size: 20px;
+        }
+
+        .details-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 18px;
-          padding: 20px 0;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin-bottom: 22px;
         }
 
         .detail {
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
+          min-width: 0;
+          padding: 13px;
+          border-radius: 10px;
+          background: #f6f8f5;
         }
 
         .detail span {
-          color: #7a837c;
+          display: block;
+          margin-bottom: 5px;
+          color: #68736b;
           font-size: 12px;
         }
 
         .detail strong {
-          color: #263128;
-          font-size: 14px;
+          display: block;
+          color: #172019;
+          font-size: 15px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .detail .buyer-id {
+          font-size: 12px;
         }
 
         .detail .total-price {
           color: #2e7d32;
-          font-size: 17px;
+          font-size: 18px;
         }
 
-        .status-message {
-          padding: 13px 15px;
+        .actions {
+          display: flex;
+          gap: 12px;
+          padding-top: 18px;
+          border-top: 1px solid #e7ebe6;
+        }
+
+        .accept-button,
+        .reject-button {
+          padding: 11px 22px;
+          border: none;
+          border-radius: 8px;
+          color: white;
+          font-family: inherit;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .accept-button {
+          background: #16a34a;
+        }
+
+        .accept-button:hover {
+          background: #15803d;
+        }
+
+        .reject-button {
+          background: #dc2626;
+        }
+
+        .reject-button:hover {
+          background: #b91c1c;
+        }
+
+        .accept-button:disabled,
+        .reject-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .accepted-message,
+        .rejected-message {
+          margin-top: 18px;
+          padding: 12px 14px;
           border-radius: 9px;
-          font-size: 14px;
-          font-weight: 600;
+          font-weight: 700;
         }
 
-        .empty-card,
-        .loading-card {
-          padding: 50px 20px;
+        .accepted-message {
+          background: #ecfdf5;
+          color: #065f46;
+        }
+
+        .rejected-message {
+          background: #fef2f2;
+          color: #991b1b;
+        }
+
+        .empty-card {
+          padding: 60px 20px;
+          border: 1px solid #dfe5de;
+          border-radius: 16px;
           background: white;
-          border: 1px solid #e1e6df;
-          border-radius: 15px;
           text-align: center;
         }
 
-        .empty-icon,
-        .loading-icon {
-          font-size: 40px;
+        .empty-icon {
+          font-size: 45px;
         }
 
         .empty-card h2 {
-          margin: 12px 0 5px;
+          margin: 12px 0 7px;
           color: #172019;
         }
 
@@ -471,70 +738,51 @@ export default function BuyerOrdersPage() {
           color: #68736b;
         }
 
-        .shop-button {
-          display: inline-flex;
-          padding: 11px 18px;
-          border-radius: 9px;
-          background: #2e7d32;
-          color: white;
-          font-weight: 600;
-          text-decoration: none;
-        }
-
-        .shop-button:hover {
-          background: #1b5e20;
-          color: white;
-        }
-
-        @media (max-width: 650px) {
-          .buyer-orders-page {
-            padding: 18px 12px 40px;
+        @media (max-width: 750px) {
+          .details-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
+        }
 
-          .back-button {
-            width: 100%;
-            justify-content: center;
-            margin-bottom: 20px;
+        @media (max-width: 600px) {
+          .page {
+            padding: 20px 12px 40px;
           }
 
           .page-header {
+            align-items: flex-start;
             flex-direction: column;
-            align-items: stretch;
-            margin-bottom: 22px;
           }
 
           .page-header h1 {
-            font-size: 28px;
-          }
-
-          .refresh-button {
-            width: 100%;
+            font-size: 30px;
           }
 
           .order-card {
-            padding: 17px;
+            padding: 18px;
           }
 
           .order-header {
-            align-items: flex-start;
+            flex-direction: column;
           }
 
-          .order-header h2 {
-            font-size: 18px;
+          .details-grid {
+            grid-template-columns: 1fr 1fr;
           }
 
-          .status-badge {
-            font-size: 12px;
-            padding: 6px 10px;
+          .actions {
+            flex-direction: column;
           }
 
-          .order-details {
+          .accept-button,
+          .reject-button {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 400px) {
+          .details-grid {
             grid-template-columns: 1fr;
-            gap: 13px;
-          }
-
-          .status-message {
-            font-size: 13px;
           }
         }
       `}</style>

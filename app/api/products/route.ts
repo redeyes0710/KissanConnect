@@ -7,6 +7,8 @@ export async function GET(request: Request) {
 
   const farmer_id = searchParams.get("farmer_id");
   const search = searchParams.get("search");
+  const category = searchParams.get("category");
+  const variety = searchParams.get("variety");
 
   try {
     let query = supabase
@@ -14,12 +16,28 @@ export async function GET(request: Request) {
       .select("*")
       .order("created_at", { ascending: false });
 
+    // Filter by farmer
     if (farmer_id) {
       query = query.eq("farmer_id", farmer_id);
     }
 
+    // Search product name, category or variety
     if (search) {
-      query = query.ilike("name", `%${search}%`);
+      const searchTerm = search.replace(/,/g, " ");
+
+      query = query.or(
+        `name.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%,variety.ilike.%${searchTerm}%`
+      );
+    }
+
+    // Filter by category
+    if (category) {
+      query = query.ilike("category", category);
+    }
+
+    // Filter by variety
+    if (variety) {
+      query = query.ilike("variety", `%${variety}%`);
     }
 
     const { data, error } = await query;
@@ -32,17 +50,39 @@ export async function GET(request: Request) {
 
       let fallback = DEMO_PRODUCTS;
 
+      // Farmer filter
       if (farmer_id) {
         fallback = fallback.filter(
           (product) => product.farmer_id === farmer_id
         );
       }
 
+      // Search name, category or variety
       if (search) {
+        const searchTerm = search.toLowerCase();
+
+        fallback = fallback.filter(
+          (product) =>
+            product.name.toLowerCase().includes(searchTerm) ||
+            product.category.toLowerCase().includes(searchTerm) ||
+            product.variety.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      // Category filter
+      if (category) {
+        fallback = fallback.filter(
+          (product) =>
+            product.category.toLowerCase() === category.toLowerCase()
+        );
+      }
+
+      // Variety filter
+      if (variety) {
+        const varietyTerm = variety.toLowerCase();
+
         fallback = fallback.filter((product) =>
-          product.name
-            .toLowerCase()
-            .includes(search.toLowerCase())
+          product.variety.toLowerCase().includes(varietyTerm)
         );
       }
 
@@ -81,6 +121,8 @@ export async function POST(request: Request) {
 
     const {
       name,
+      category,
+      variety,
       description,
       price,
       quantity,
@@ -91,6 +133,8 @@ export async function POST(request: Request) {
     // Required field validation
     if (
       !name ||
+      !category ||
+      !variety ||
       price == null ||
       quantity == null ||
       !unit
@@ -99,7 +143,7 @@ export async function POST(request: Request) {
         {
           success: false,
           error:
-            "name, price, quantity and unit are required",
+            "name, category, variety, price, quantity and unit are required",
         },
         { status: 400 }
       );
@@ -134,6 +178,8 @@ export async function POST(request: Request) {
       .insert([
         {
           name,
+          category,
+          variety,
           description: description || null,
           price,
           quantity,

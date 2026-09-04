@@ -16,6 +16,8 @@ export async function createProduct(product: {
   price: number;
   quantity: number;
   unit: string;
+  category?: string | null;
+  variety?: string | null;
   farmer_id?: string | null;
 }) {
   const response = await fetch(`${API_BASE}/api/products`, {

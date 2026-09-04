@@ -74,6 +74,13 @@ function LoginContent() {
         <br />
 
         <button type="submit">Login</button>
+
+        {/* Forgot Password */}
+        <p>
+          <a href="/forgot-password">
+            Forgot password?
+          </a>
+        </p>
       </form>
 
       <p>{message}</p>
